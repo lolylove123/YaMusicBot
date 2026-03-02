@@ -1,0 +1,4 @@
+discord.py
+yandex-music
+python-dotenv
+pywin32
