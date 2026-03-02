@@ -3,6 +3,7 @@ from discord.ext import commands
 from yandex_music import Client
 import asyncio
 import os
+import traceback
 import threading
 from dotenv import load_dotenv
 
@@ -98,24 +99,28 @@ async def auto_clean_cache(ctx):
 async def play_music(ctx):
     guild_id = ctx.guild.id
     if guild_id not in queues or not queues[guild_id]:
-        # Если очередь пуста, возвращаем дефолтный статус
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="ya!help"))
         return
 
     await auto_clean_cache(ctx)
 
     if not ctx.voice_client:
-        await ctx.author.voice.channel.connect()
+        try:
+            await ctx.author.voice.channel.connect()
+        except Exception as e:
+            return await ctx.send(f"❌ Не удалось подключиться к каналу: {e}")
 
     track = queues[guild_id].pop(0)
     file_path = os.path.abspath(f"{CACHE_DIR}/{track.id}.mp3")
 
     try:
+        # Загрузка трека
         if not os.path.exists(file_path):
             await ctx.send(f"📥 Загрузка: **{track.title}**", delete_after=5)
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, download_sync, track)
 
+        # Создание источника звука
         source = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(file_path, executable="ffmpeg", **FFMPEG_OPTS)
         )
@@ -126,7 +131,7 @@ async def play_music(ctx):
 
         ctx.voice_client.play(source, after=after_playing)
 
-        # ОБНОВЛЕНИЕ СТАТУСА ПРИ ИГРЕ
+        # Статус и Embed
         await bot.change_presence(
             activity=discord.Activity(type=discord.ActivityType.listening, name=f"{track.title}")
         )
@@ -140,16 +145,18 @@ async def play_music(ctx):
         if cover_url:
             if not cover_url.startswith('http'): cover_url = f"https://{cover_url}"
             embed.set_image(url=cover_url)
-        if track.albums: embed.set_footer(text=f"Альбом: {track.albums[0].title}")
+        
         embed.set_author(name="Сейчас играет")
-
         await ctx.send(embed=embed)
 
+        # Предзагрузка следующего трека
         if queues[guild_id]:
             threading.Thread(target=download_sync, args=(queues[guild_id][0],), daemon=True).start()
 
     except Exception as e:
-        print(f"Play Error: {e}")
+        print("--- ОШИБКА ВОСПРОИЗВЕДЕНИЯ ---")
+        traceback.print_exc()
+        await ctx.send(f"⚠️ Ошибка при воспроизведении {track.title}. Перехожу к следующему...")
         bot.loop.create_task(play_music(ctx))
 
 # === КОМАНДЫ ===
