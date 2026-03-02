@@ -6,6 +6,8 @@ import os
 import threading
 from dotenv import load_dotenv
 
+load_dotenv()
+
 # === ПРИОРИТЕТ ПРОЦЕССА (Windows) ===
 if os.name == 'nt':
     try:
