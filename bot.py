@@ -126,7 +126,7 @@ async def play_music(ctx):
         #)
 
         # Пытаемся найти ffmpeg в стандартном месте Linux
-        ffmpeg_path = "/usr/bin/ffmpeg" if os.name != 'nt' else "ffmpeg"
+        ffmpeg_path = "./ffmpeg"
 
         source = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(file_path, executable=ffmpeg_path, **FFMPEG_OPTS)
