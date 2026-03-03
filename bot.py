@@ -120,9 +120,16 @@ async def play_music(ctx):
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, download_sync, track)
 
-        # Создание источника звука
+        # Создание источника звука (старое)
+        #source = discord.PCMVolumeTransformer(
+        #   discord.FFmpegPCMAudio(file_path, executable="ffmpeg", **FFMPEG_OPTS)
+        #)
+
+        # Пытаемся найти ffmpeg в стандартном месте Linux
+        ffmpeg_path = "/usr/bin/ffmpeg" if os.name != 'nt' else "ffmpeg"
+
         source = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(file_path, executable="ffmpeg", **FFMPEG_OPTS)
+            discord.FFmpegPCMAudio(file_path, executable=ffmpeg_path, **FFMPEG_OPTS)
         )
 
         def after_playing(e):
